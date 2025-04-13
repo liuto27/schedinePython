@@ -1,0 +1,65 @@
+/* General styling for the page */
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f8f9fa;
+    margin: 0;
+    padding: 0;
+}
+
+h1 {
+    color: #343a40;
+    margin-bottom: 20px;
+}
+
+.container {
+    max-width: 1200px;
+    padding: 20px;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Form styling */
+.form-group {
+    margin-bottom: 15px;
+}
+
+label {
+    font-weight: bold;
+}
+
+button {
+    font-size: 16px;
+    padding: 10px;
+}
+
+/* Table styling */
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+table th,
+table td {
+    text-align: center;
+    padding: 10px;
+    border: 1px solid #dee2e6;
+}
+
+table th {
+    background-color: #343a40;
+    color: #fff;
+}
+
+table tr:nth-child(even) {
+    background-color: #f8f9fa;
+}
+
+table tr:hover {
+    background-color: #dee2e6;
+}
+
+/* Initially hide the results section */
+#results-section {
+    display: none;
+}
