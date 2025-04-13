@@ -1,11 +1,15 @@
 import os
 import requests
 
-# Define the season and championship mappings
+# Define the season and championship mappings (including future seasons)
 season_mapping = {
     "2223": "2022/2023",
     "2324": "2023/2024",
-    "2425": "2024/2025"
+    "2425": "2024/2025",
+    "2526": "2025/2026",
+    "2627": "2026/2027",
+    "2728": "2027/2028",
+    "2829": "2028/2029"
 }
 
 championship_mapping = {
@@ -25,28 +29,36 @@ data_dir = "./data"
 if not os.path.exists(data_dir):
     os.makedirs(data_dir)
 
-# Loop through each season and championship to download the files
-for season_code, season_name in season_mapping.items():
-    for championship_code, championship_name in championship_mapping.items():
-        # Construct the file's URL
-        url = base_url.format(season=season_code, championship=championship_code)
-        filename = f"{season_code}_{championship_code}.csv"
-        file_path = os.path.join(data_dir, filename)
+# Find the latest season code that has already been downloaded
+existing_files = [f.split('_')[0] for f in os.listdir(data_dir) if f.endswith(".csv")]
+latest_season_code = max(existing_files) if existing_files else min(season_mapping.keys())
 
-        try:
-            # Fetch the file using an HTTP GET request
+print(f"Latest season in local data: {latest_season_code}")
+
+# Loop through each championship and attempt to download the latest season's file
+for championship_code, championship_name in championship_mapping.items():
+    # Construct the URL for the latest season file
+    url = base_url.format(season=latest_season_code, championship=championship_code)
+    filename = f"{latest_season_code}_{championship_code}.csv"
+    file_path = os.path.join(data_dir, filename)
+
+    try:
+        # Fetch the file using an HTTP GET request
+        print(f"Checking availability of {filename}...")
+        response = requests.get(url)
+
+        # Check if the file exists on the server
+        if response.status_code == 200:
+            # Save the file to the "data" directory
             print(f"Downloading {filename}...")
-            response = requests.get(url)
+            with open(file_path, "wb") as f:
+                f.write(response.content)
+            print(f"Saved: {file_path}")
+        else:
+            # Skip the file if it doesn't exist (e.g., HTTP 404 Not Found)
+            print(f"{filename} not found (HTTP {response.status_code}). Skipping...")
+    except Exception as e:
+        # Handle other possible errors (e.g., network issues)
+        print(f"Error downloading {filename}: {e}")
 
-            # Check if the response is successful
-            if response.status_code == 200:
-                # Save the file to the "data" directory
-                with open(file_path, "wb") as f:
-                    f.write(response.content)
-                print(f"Saved: {file_path}")
-            else:
-                print(f"Failed to download {filename}: HTTP {response.status_code}")
-        except Exception as e:
-            print(f"Error downloading {filename}: {e}")
-
-print("Download process completed.")
+print("Latest season download process completed.")
