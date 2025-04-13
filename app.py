@@ -37,7 +37,8 @@ def load_all_matches():
     dataframes = []
     for season_code, season_name in season_mapping.items():
         for championship_code, championship_name in championship_mapping.items():
-            url = f"https://football-data.co.uk/mmz4281/{season_code}/{championship_code}.csv"
+            #  url = f"https://football-data.co.uk/mmz4281/{season_code}/{championship_code}.csv"
+            url = f"https://raw.githubusercontent.com/liuto27/schedinePython/refs/heads/main/data/{season_code}_{championship_code}.csv"
             try:
                 # Read the CSV file and add season and championship columns
                 df = pd.read_csv(url)
