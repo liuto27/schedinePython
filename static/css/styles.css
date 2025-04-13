@@ -6,17 +6,16 @@ body {
     padding: 0;
 }
 
+/* Override Bootstrap container so it uses the full width */
+.container {
+    max-width: 100% !important;  /* Use the full viewport width */
+    padding: 20px;                /* Add a little horizontal padding */
+    margin: 0 auto;
+}
+
 h1 {
     color: #343a40;
     margin-bottom: 20px;
-}
-
-.container {
-    max-width: 1200px;
-    padding: 20px;
-    background-color: #fff;
-    border-radius: 8px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 }
 
 /* Form styling */
@@ -31,6 +30,12 @@ label {
 button {
     font-size: 16px;
     padding: 10px;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #0056b3; /* Darker on hover */
+    color: #fff;
 }
 
 /* Table styling */
@@ -59,7 +64,29 @@ table tr:hover {
     background-color: #dee2e6;
 }
 
-/* Initially hide the results section */
+/* Results section styling */
 #results-section {
-    display: none;
+    display: flex !important;      /* Force flex layout */
+    flex-wrap: nowrap;             /* No wrapping – two columns side by side */
+    justify-content: space-between;
+    gap: 20px;                    /* Space between the two table columns */
+}
+
+/* Force each table container to take up about half the width */
+#results-section .col-md-6 {
+    flex: 0 0 49%;
+    max-width: 49%;
+}
+
+/* Responsive adjustments for smaller screens */
+@media (max-width: 768px) {
+    #results-section {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    #results-section .col-md-6 {
+        flex: 0 0 100%;
+        max-width: 100%;
+    }
 }
