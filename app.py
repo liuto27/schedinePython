@@ -1,5 +1,6 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request
 import pandas as pd
+import requests
 
 app = Flask(__name__)
 
@@ -23,7 +24,7 @@ championship_mapping = {
     "E3": "League Two"
 }
 
-# Parameter mapping
+# Parameter mapping for friendly names (e.g., "C" means "Corners")
 parameter_mapping = {
     "S": "Shots",
     "ST": "Shots on Target",
@@ -36,12 +37,17 @@ parameter_mapping = {
 }
 
 
-# Function to dynamically create all_matches
+# -------------------------------------------------------------------
+# Function: load_all_matches()
+# Description:
+#   For each season and championship, downloads the CSV from GitHub,
+#   adds Season and Championship columns, and then builds a new structure
+#   with one row per team per match.
+# -------------------------------------------------------------------
 def load_all_matches():
     dataframes = []
     for season_code, season_name in season_mapping.items():
         for championship_code, championship_name in championship_mapping.items():
-            #  url = f"https://football-data.co.uk/mmz4281/{season_code}/{championship_code}.csv"
             url = f"https://raw.githubusercontent.com/liuto27/schedinePython/refs/heads/main/data/{season_code}_{championship_code}.csv"
             try:
                 # Read the CSV file and add season and championship columns
@@ -55,7 +61,7 @@ def load_all_matches():
     # Combine all DataFrames from all seasons and championships
     df_matches = pd.concat(dataframes, ignore_index=True)
 
-    # Convert Date column to datetime (using dayfirst, as needed)
+    # Convert Date column to datetime (using dayfirst as needed)
     try:
         df_matches["Date"] = pd.to_datetime(df_matches["Date"], errors="coerce", dayfirst=True)
     except Exception as e:
@@ -65,8 +71,7 @@ def load_all_matches():
     df_matches = df_matches.drop_duplicates(subset=["Date", "Time", "HomeTeam", "AwayTeam"])
 
     # ---- Build a new structure for matches ----
-    # We want to get one row per team per match
-    # Base columns to preserve from the original data:
+    # One row per team per match.
     base_cols = ["Div", "Date", "Time", "Season", "Championship"]
 
     # Build home-team DataFrame
@@ -92,40 +97,54 @@ def load_all_matches():
     df_away["Home_Away"] = "A"
 
     # Define the statistic columns mapping.
-    # (For each parameter “X”, the original CSV columns are given by the home and away keys.)
     stat_columns = {
-        "HTG": {"home": "HTHG", "away": "HTAG"},  # Use these for goals (half-time goals in your CSV)
-        "S":   {"home": "HS",   "away": "AS"},
-        "ST":  {"home": "HST",  "away": "AST"},
-        "F":   {"home": "HF",   "away": "AF"},
-        "C":   {"home": "HC",   "away": "AC"},
-        "Y":   {"home": "HY",   "away": "AY"},
-        "R":   {"home": "HR",   "away": "AR"}
+        "HTG": {"home": "HTHG", "away": "HTAG"},
+        "S": {"home": "HS", "away": "AS"},
+        "ST": {"home": "HST", "away": "AST"},
+        "F": {"home": "HF", "away": "AF"},
+        "C": {"home": "HC", "away": "AC"},
+        "Y": {"home": "HY", "away": "AY"},
+        "R": {"home": "HR", "away": "AR"}
     }
-    # For home rows: active stats come from the home columns and passive from the away columns.
+    # Populate stats for home rows (active stats from home, passive from away)
     for param, cols in stat_columns.items():
         df_home[param + "_a"] = df_matches[cols["home"]]
         df_home[param + "_p"] = df_matches[cols["away"]]
 
-    # For away rows: active stats come from the away columns and passive from the home columns.
+    # Populate stats for away rows (active stats from away, passive from home)
     for param, cols in stat_columns.items():
         df_away[param + "_a"] = df_matches[cols["away"]]
         df_away[param + "_p"] = df_matches[cols["home"]]
 
-    # Concatenate both DataFrames to get one unified DataFrame with one row per team per match.
+    # Concatenate both DataFrames to get one unified DataFrame.
     df_final = pd.concat([df_home, df_away], ignore_index=True)
 
-    # Optionally sort the results by Date (descending), Time, and Team.
+    # Optionally sort by Date (descending), Time, and then by Team.
     df_final.sort_values(by=["Date", "Time", "Team"], ascending=[False, False, True], inplace=True)
 
     return df_final
 
 
+# -------------------------------------------------------------------
+# Function: calculate_team_averages_from_df()
+# Description:
+#   Given a filtered DataFrame (for one team) and a parameter code (e.g., "C"),
+#   sorts the data in chronological order, takes the last 7 games and computes
+#   the average active value and the average passive value.
+# -------------------------------------------------------------------
+def calculate_team_averages_from_df(filtered_df, parameter):
+    # Ensure the Date column is datetime and sort in ascending order (oldest first)
+    df_sorted = filtered_df.sort_values(by="Date", ascending=True)
+    last7 = df_sorted.tail(7)
+    avg_active = last7[f"{parameter}_a"].mean()
+    avg_passive = last7[f"{parameter}_p"].mean()
+    return avg_active, avg_passive
+
 
 # Load all_matches when the app starts
 all_matches = load_all_matches()
 
-# Dropdown options
+# Dropdown options for the template
 championships = list(championship_mapping.values())
 seasons = list(season_mapping.values())
 parameters = list(parameter_mapping.items())
@@ -133,9 +152,16 @@ standard_columns = ['Div', 'Date', 'Time', 'OpponentTeam', 'Team', 'Season', 'Ch
                     'HT_WDL']
 
 
+# -------------------------------------------------------------------
+# Route: "/"
+# Description:
+#   The main route for GET and POST requests.
+#   On POST, processes the form inputs, filters the data for the two selected teams,
+#   calculates the last 7-game averages for the selected parameter,
+#   and returns the results along with the detailed match tables.
+# -------------------------------------------------------------------
 @app.route("/", methods=["GET", "POST"])
 def index():
-    # Initialize variables
     teams = []
     filtered_result_team1 = []
     filtered_result_team2 = []
@@ -143,6 +169,12 @@ def index():
     header_team2 = ""
     selected_parameter = None
     parameter_friendly_name = None
+
+    # Variables to hold average statistics for each team
+    avg_active_team1 = None
+    avg_passive_team1 = None
+    avg_active_team2 = None
+    avg_passive_team2 = None
 
     if request.method == "POST":
         # Get user inputs from form
@@ -152,18 +184,19 @@ def index():
         team2 = request.form.get("team2")
         selected_parameter = request.form.get("parameter")
 
-        # Debugging: Print the inputs
-        print(f"Inputs - Championship: {selected_championship}, Season: {selected_season}, Team 1: {team1}, Team 2: {team2}, Parameter: {selected_parameter}")
+        # Debug: Print the inputs
+        print(
+            f"Inputs - Championship: {selected_championship}, Season: {selected_season}, Team 1: {team1}, Team 2: {team2}, Parameter: {selected_parameter}")
 
         # Get friendly name for the selected parameter
         if selected_parameter:
             parameter_friendly_name = parameter_mapping.get(selected_parameter, selected_parameter)
 
-        # Expand selected parameter to include '_a' and '_p'
+        # Expand selected parameter to include active and passive column suffixes
         parameter_active = f"{selected_parameter}_a"
         parameter_passive = f"{selected_parameter}_p"
 
-        # Validate columns
+        # Validate that required columns exist in the data
         if parameter_active not in all_matches.columns or parameter_passive not in all_matches.columns:
             print(f"Missing columns for parameter: {selected_parameter}")
             return render_template(
@@ -181,43 +214,41 @@ def index():
                 parameter_friendly_name=parameter_friendly_name,
             )
 
-        # Filter all_matches for Team 1
+        # Filter all_matches for Team 1 based on the selected championship and season
         filtered_data_team1 = all_matches[
             (all_matches["Championship"] == selected_championship) &
             (all_matches["Season"] == selected_season) &
             (all_matches["Team"] == team1)
-        ][["Date", "OpponentTeam", "Home_Away", parameter_active, parameter_passive]]
+            ][["Date", "OpponentTeam", "Home_Away", parameter_active, parameter_passive]]
 
-        # Filter all_matches for Team 2
+        # Filter all_matches for Team 2 based on the selected championship and season
         filtered_data_team2 = all_matches[
             (all_matches["Championship"] == selected_championship) &
             (all_matches["Season"] == selected_season) &
             (all_matches["Team"] == team2)
-        ][["Date", "OpponentTeam", "Home_Away", parameter_active, parameter_passive]]
+            ][["Date", "OpponentTeam", "Home_Away", parameter_active, parameter_passive]]
 
-        # Debugging: Print filtered results
+        # Debug: Print filtered results (first few rows)
         print("Filtered Data Team 1:")
         print(filtered_data_team1.head())
         print("Filtered Data Team 2:")
         print(filtered_data_team2.head())
 
-        # Sort data by Date (descending)
+        # Sort data by Date descending for display and format the Date column
         filtered_data_team1 = filtered_data_team1.sort_values(by="Date", ascending=False)
         filtered_data_team2 = filtered_data_team2.sort_values(by="Date", ascending=False)
-
-        # Format the Date column
         filtered_data_team1["Date"] = filtered_data_team1["Date"].dt.strftime("%Y-%m-%d")
         filtered_data_team2["Date"] = filtered_data_team2["Date"].dt.strftime("%Y-%m-%d")
 
-        # Convert data to dictionaries
+        # Convert filtered data to dictionaries for rendering in the template
         filtered_result_team1 = filtered_data_team1.to_dict(orient="records")
         filtered_result_team2 = filtered_data_team2.to_dict(orient="records")
 
-        # Debugging: Check final results
-        print("Filtered Result Team 1:", filtered_result_team1)
-        print("Filtered Result Team 2:", filtered_result_team2)
+        # Calculate the last 7-game averages for each team using the filtered data
+        avg_active_team1, avg_passive_team1 = calculate_team_averages_from_df(filtered_data_team1, selected_parameter)
+        avg_active_team2, avg_passive_team2 = calculate_team_averages_from_df(filtered_data_team2, selected_parameter)
 
-        # Dynamic headers
+        # Dynamic headers for the result sections
         header_team1 = f"Matches for {team1} in {selected_season} ({selected_championship})"
         header_team2 = f"Matches for {team2} in {selected_season} ({selected_championship})"
 
@@ -233,33 +264,32 @@ def index():
         header_team2=header_team2,
         selected_parameter=selected_parameter,
         parameter_friendly_name=parameter_friendly_name,
+        avg_active_team1=avg_active_team1,
+        avg_passive_team1=avg_passive_team1,
+        avg_active_team2=avg_active_team2,
+        avg_passive_team2=avg_passive_team2,
     )
 
 
-
+# -------------------------------------------------------------------
+# Route: /get-teams
+# Description: Returns a JSON list of teams for the selected championship and season.
+# -------------------------------------------------------------------
 @app.route("/get-teams", methods=["POST"])
 def get_teams():
-    # Get data from the AJAX request
     selected_championship = request.json.get("championship")
     selected_season = request.json.get("season")
 
-    # Debugging: Print the received championship and season
     print(f"Selected Championship: {selected_championship}")
     print(f"Selected Season: {selected_season}")
 
-    # Filter the all_matches DataFrame for teams
     filtered_data = all_matches[
         (all_matches["Championship"] == selected_championship) &
         (all_matches["Season"] == selected_season)
         ]
 
-    # Debugging: Check the filtered data
     print(filtered_data[["Championship", "Season", "Team"]].head())
-
-    # Get unique teams
     teams = filtered_data["Team"].drop_duplicates().sort_values().tolist()
-
-    # Debugging: Print the teams list
     print(f"Teams: {teams}")
 
     return {"teams": teams}

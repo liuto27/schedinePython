@@ -10,7 +10,7 @@
 </head>
 <body>
   <div class="container mt-5">
-    <h1 class="text-center">Match Data Filter</h1>
+    <h1 class="text-center">Super Schedina</h1>
     <form method="POST" action="/">
       <!-- Championship Dropdown -->
       <div class="form-group">
@@ -18,7 +18,7 @@
         <select id="championship" name="championship" class="form-control" required>
           <option value="" selected disabled>Select Championship</option>
           {% for champ in championships %}
-          <option value="{{ champ }}">{{ champ }}</option>
+            <option value="{{ champ }}">{{ champ }}</option>
           {% endfor %}
         </select>
       </div>
@@ -28,7 +28,7 @@
         <select id="season" name="season" class="form-control" required>
           <option value="" selected disabled>Select Season</option>
           {% for season in seasons %}
-          <option value="{{ season }}">{{ season }}</option>
+            <option value="{{ season }}">{{ season }}</option>
           {% endfor %}
         </select>
       </div>
@@ -52,7 +52,7 @@
         <select id="parameter" name="parameter" class="form-control" required>
           <option value="" selected disabled>Select Parameter</option>
           {% for abbreviation, full_name in parameters %}
-          <option value="{{ abbreviation }}">{{ full_name }}</option>
+            <option value="{{ abbreviation }}">{{ full_name }}</option>
           {% endfor %}
         </select>
       </div>
@@ -60,92 +60,90 @@
       <button type="submit" class="btn btn-primary btn-block">Filter Matches</button>
     </form>
 
-    <!-- Section for Team 1 and Team 2 Tables -->
+    <!-- Averages Section -->
+    {% if parameter_friendly_name %}
+    <div class="mt-4 p-3 bg-light border rounded">
+      <h3 class="text-center">Team Averages for {{ parameter_friendly_name }}</h3>
+      <div class="row">
+        <div class="col-md-6">
+          <h5>{{ team1 }}</h5>
+          <p>Average Active: {{ avg_active_team1 | round(2) }}</p>
+          <p>Average Passive: {{ avg_passive_team1 | round(2) }}</p>
+        </div>
+        <div class="col-md-6">
+          <h5>{{ team2 }}</h5>
+          <p>Average Active: {{ avg_active_team2 | round(2) }}</p>
+          <p>Average Passive: {{ avg_passive_team2 | round(2) }}</p>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Results Section -->
     <div class="row mt-5" id="results-section"
-      {% if header_team1 or header_team2 %} style="display: block;" {% else %} style="display: none;" {% endif %}>
-      <!-- Team 1 Section -->
+         {% if header_team1 or header_team2 %} style="display: block;" {% else %} style="display: none;" {% endif %}>
+      <!-- Team 1 Results -->
       <div class="col-md-6">
         {% if header_team1 and filtered_result_team1 %}
-        <h3 class="text-center">{{ header_team1 }}</h3>
-        <table class="table table-bordered">
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Opponent Team</th>
-              <th>Home/Away</th>
-              <th>Active {{ parameter_friendly_name }}</th>
-              <th>Passive {{ parameter_friendly_name }}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for match in filtered_result_team1 %}
-            <tr>
-              <td>{{ match.Date }}</td>
-              <td>{{ match.OpponentTeam }}</td>
-              <td>{{ match.Home_Away }}</td>
-              <td>
-                {% if match.Team == selected_team1 %}
-                  {{ match[selected_parameter + '_a'] }}
-                {% elif match.OpponentTeam == selected_team1 %}
-                  {{ match[selected_parameter + '_p'] }}
-                {% endif %}
-              </td>
-              <td>
-                {% if match.Team == selected_team1 %}
-                  {{ match[selected_parameter + '_p'] }}
-                {% elif match.OpponentTeam == selected_team1 %}
-                  {{ match[selected_parameter + '_a'] }}
-                {% endif %}
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
+          <h3 class="text-center">{{ header_team1 }}</h3>
+          <table class="table table-bordered">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Opponent Team</th>
+                <th>Home/Away</th>
+                <th>Active {{ parameter_friendly_name }}</th>
+                <th>Passive {{ parameter_friendly_name }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for match in filtered_result_team1 %}
+                <tr>
+                  <td>{{ match.Date }}</td>
+                  <td>{{ match.OpponentTeam }}</td>
+                  <td>{{ match.Home_Away }}</td>
+                  <td>{{ match[selected_parameter + '_a'] }}</td>
+                  <td>{{ match[selected_parameter + '_p'] }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
         {% else %}
-          {% if selected_team1 %}<p class="text-center">No matches found for {{ selected_team1 }}.</p>{% endif %}
+          {% if team1 %}
+            <p class="text-center">No matches found for {{ team1 }}.</p>
+          {% endif %}
         {% endif %}
       </div>
-
-      <!-- Team 2 Section -->
+      <!-- Team 2 Results -->
       <div class="col-md-6">
         {% if header_team2 and filtered_result_team2 %}
-        <h3 class="text-center">{{ header_team2 }}</h3>
-        <table class="table table-bordered">
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Opponent Team</th>
-              <th>Home/Away</th>
-              <th>Active {{ parameter_friendly_name }}</th>
-              <th>Passive {{ parameter_friendly_name }}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for match in filtered_result_team2 %}
-            <tr>
-              <td>{{ match.Date }}</td>
-              <td>{{ match.OpponentTeam }}</td>
-              <td>{{ match.Home_Away }}</td>
-              <td>
-                {% if match.Team == selected_team2 %}
-                  {{ match[selected_parameter + '_a'] }}
-                {% elif match.OpponentTeam == selected_team2 %}
-                  {{ match[selected_parameter + '_p'] }}
-                {% endif %}
-              </td>
-              <td>
-                {% if match.Team == selected_team2 %}
-                  {{ match[selected_parameter + '_p'] }}
-                {% elif match.OpponentTeam == selected_team2 %}
-                  {{ match[selected_parameter + '_a'] }}
-                {% endif %}
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
+          <h3 class="text-center">{{ header_team2 }}</h3>
+          <table class="table table-bordered">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Opponent Team</th>
+                <th>Home/Away</th>
+                <th>Active {{ parameter_friendly_name }}</th>
+                <th>Passive {{ parameter_friendly_name }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for match in filtered_result_team2 %}
+                <tr>
+                  <td>{{ match.Date }}</td>
+                  <td>{{ match.OpponentTeam }}</td>
+                  <td>{{ match.Home_Away }}</td>
+                  <td>{{ match[selected_parameter + '_a'] }}</td>
+                  <td>{{ match[selected_parameter + '_p'] }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
         {% else %}
-          {% if selected_team2 %}<p class="text-center">No matches found for {{ selected_team2 }}.</p>{% endif %}
+          {% if team2 %}
+            <p class="text-center">No matches found for {{ team2 }}.</p>
+          {% endif %}
         {% endif %}
       </div>
     </div>
@@ -158,25 +156,20 @@
       function fetchTeams() {
         const championship = $("#championship").val();
         const season = $("#season").val();
-
         if (!championship || !season) {
           console.log("Both Championship and Season must be selected to fetch teams.");
           return;
         }
-
         console.log("Selected Championship:", championship);
         console.log("Selected Season:", season);
-
         $.ajax({
           url: "/get-teams",
           type: "POST",
           contentType: "application/json",
           data: JSON.stringify({ championship: championship, season: season }),
           success: function (response) {
-            const teams = response.teams;
-            console.log("Received Teams:", teams);
             $("#team1, #team2").empty().append('<option value="" selected disabled>Select Team</option>');
-            teams.forEach(function (team) {
+            response.teams.forEach(function (team) {
               $("#team1").append(`<option value="${team}">${team}</option>`);
               $("#team2").append(`<option value="${team}">${team}</option>`);
             });
@@ -186,13 +179,9 @@
           }
         });
       }
-
-      $("#championship, #season").change(function () {
-        fetchTeams();
-      });
+      $("#championship, #season").change(fetchTeams);
     });
   </script>
-
-
 </body>
 </html>
+```
