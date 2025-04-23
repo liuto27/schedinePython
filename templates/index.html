@@ -63,7 +63,7 @@
     <!-- Averages Section -->
     {% if parameter_friendly_name %}
     <div class="mt-4 p-3 bg-light border rounded">
-      <h3 class="text-center">Team Averages for {{ parameter_friendly_name }} for the last 7 matches</h3>
+      <h3 class="text-center">Team Averages for {{ parameter_friendly_name }}</h3>
       <div class="row">
         <div class="col-md-6">
           <h5>{{ team1 }}</h5>
@@ -76,83 +76,84 @@
           <p>Average Passive: {{ avg_passive_team2 | round(2) }}</p>
         </div>
       </div>
+      <!-- Final Calculation Display -->
+      {% if final_value is not none %}
+      <div class="mt-3 text-center">
+         <h4>Final Total {{ parameter_friendly_name }} next match: {{ final_value | round(2) }}</h4>
+      </div>
+      {% endif %}
     </div>
     {% endif %}
 
-    <!-- Results Section -->
-    <div class="row mt-5" id="results-section"
-         {% if header_team1 or header_team2 %} style="display: block;" {% else %} style="display: none;" {% endif %}>
+    <!-- Results Section for Detailed Matches -->
+    <div class="row mt-5" id="results-section" {% if header_team1 or header_team2 %} style="display: block;" {% else %} style="display: none;" {% endif %}>
       <!-- Team 1 Results -->
       <div class="col-md-6">
         {% if header_team1 and filtered_result_team1 %}
-          <h3 class="text-center">{{ header_team1 }}</h3>
-          <table class="table table-bordered">
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Opponent Team</th>
-                <th>Home/Away</th>
-                <th>Active {{ parameter_friendly_name }}</th>
-                <th>Passive {{ parameter_friendly_name }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for match in filtered_result_team1 %}
-                <tr>
-                  <td>{{ match.Date }}</td>
-                  <td>{{ match.OpponentTeam }}</td>
-                  <td>{{ match.Home_Away }}</td>
-                  <td>{{ match[selected_parameter + '_a'] }}</td>
-                  <td>{{ match[selected_parameter + '_p'] }}</td>
-                </tr>
-              {% endfor %}
-            </tbody>
-          </table>
+        <h3 class="text-center">{{ header_team1 }}</h3>
+        <table class="table table-bordered">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Opponent Team</th>
+              <th>Home/Away</th>
+              <th>Active {{ parameter_friendly_name }}</th>
+              <th>Passive {{ parameter_friendly_name }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for match in filtered_result_team1 %}
+            <tr>
+              <td>{{ match.Date }}</td>
+              <td>{{ match.OpponentTeam }}</td>
+              <td>{{ match.Home_Away }}</td>
+              <td>{{ match[selected_parameter + '_a'] }}</td>
+              <td>{{ match[selected_parameter + '_p'] }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
         {% else %}
-          {% if team1 %}
-            <p class="text-center">No matches found for {{ team1 }}.</p>
-          {% endif %}
+          {% if team1 %}<p class="text-center">No matches found for {{ team1 }}.</p>{% endif %}
         {% endif %}
       </div>
+
       <!-- Team 2 Results -->
       <div class="col-md-6">
         {% if header_team2 and filtered_result_team2 %}
-          <h3 class="text-center">{{ header_team2 }}</h3>
-          <table class="table table-bordered">
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Opponent Team</th>
-                <th>Home/Away</th>
-                <th>Active {{ parameter_friendly_name }}</th>
-                <th>Passive {{ parameter_friendly_name }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for match in filtered_result_team2 %}
-                <tr>
-                  <td>{{ match.Date }}</td>
-                  <td>{{ match.OpponentTeam }}</td>
-                  <td>{{ match.Home_Away }}</td>
-                  <td>{{ match[selected_parameter + '_a'] }}</td>
-                  <td>{{ match[selected_parameter + '_p'] }}</td>
-                </tr>
-              {% endfor %}
-            </tbody>
-          </table>
+        <h3 class="text-center">{{ header_team2 }}</h3>
+        <table class="table table-bordered">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Opponent Team</th>
+              <th>Home/Away</th>
+              <th>Active {{ parameter_friendly_name }}</th>
+              <th>Passive {{ parameter_friendly_name }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for match in filtered_result_team2 %}
+            <tr>
+              <td>{{ match.Date }}</td>
+              <td>{{ match.OpponentTeam }}</td>
+              <td>{{ match.Home_Away }}</td>
+              <td>{{ match[selected_parameter + '_a'] }}</td>
+              <td>{{ match[selected_parameter + '_p'] }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
         {% else %}
-          {% if team2 %}
-            <p class="text-center">No matches found for {{ team2 }}.</p>
-          {% endif %}
+          {% if team2 %}<p class="text-center">No matches found for {{ team2 }}.</p>{% endif %}
         {% endif %}
       </div>
     </div>
   </div>
 
-  <!-- JavaScript for Dropdowns -->
+  <!-- JavaScript for Dynamic Dropdowns -->
   <script>
     document.addEventListener("DOMContentLoaded", function () {
-      // Function to fetch teams based on Championship and Season
       function fetchTeams() {
         const championship = $("#championship").val();
         const season = $("#season").val();
@@ -160,8 +161,6 @@
           console.log("Both Championship and Season must be selected to fetch teams.");
           return;
         }
-        console.log("Selected Championship:", championship);
-        console.log("Selected Season:", season);
         $.ajax({
           url: "/get-teams",
           type: "POST",
@@ -184,4 +183,3 @@
   </script>
 </body>
 </html>
-```
