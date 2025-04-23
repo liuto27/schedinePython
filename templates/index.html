@@ -16,9 +16,9 @@
       <div class="form-group">
         <label for="championship">Championship</label>
         <select id="championship" name="championship" class="form-control" required>
-          <option value="" selected disabled>Select Championship</option>
+          <option value="" disabled {% if not selected_championship %}selected{% endif %}>Select Championship</option>
           {% for champ in championships %}
-            <option value="{{ champ }}">{{ champ }}</option>
+            <option value="{{ champ }}" {% if champ == selected_championship %}selected{% endif %}>{{ champ }}</option>
           {% endfor %}
         </select>
       </div>
@@ -26,9 +26,9 @@
       <div class="form-group">
         <label for="season">Season</label>
         <select id="season" name="season" class="form-control" required>
-          <option value="" selected disabled>Select Season</option>
+          <option value="" disabled {% if not selected_season %}selected{% endif %}>Select Season</option>
           {% for season in seasons %}
-            <option value="{{ season }}">{{ season }}</option>
+            <option value="{{ season }}" {% if season == selected_season %}selected{% endif %}>{{ season }}</option>
           {% endfor %}
         </select>
       </div>
@@ -36,23 +36,41 @@
       <div class="form-group">
         <label for="team1">Team 1</label>
         <select id="team1" name="team1" class="form-control" required>
-          <option value="" selected disabled>Select Team 1</option>
+          <option value="" disabled {% if not team1 %}selected{% endif %}>Select Team 1</option>
+          {% if teams %}
+            {% for t in teams %}
+              <option value="{{ t }}" {% if t == team1 %}selected{% endif %}>{{ t }}</option>
+            {% endfor %}
+          {% else %}
+            {% if team1 %}
+              <option value="{{ team1 }}" selected>{{ team1 }}</option>
+            {% endif %}
+          {% endif %}
         </select>
       </div>
       <!-- Team 2 Dropdown -->
       <div class="form-group">
         <label for="team2">Team 2</label>
         <select id="team2" name="team2" class="form-control" required>
-          <option value="" selected disabled>Select Team 2</option>
+          <option value="" disabled {% if not team2 %}selected{% endif %}>Select Team 2</option>
+          {% if teams %}
+            {% for t in teams %}
+              <option value="{{ t }}" {% if t == team2 %}selected{% endif %}>{{ t }}</option>
+            {% endfor %}
+          {% else %}
+            {% if team2 %}
+              <option value="{{ team2 }}" selected>{{ team2 }}</option>
+            {% endif %}
+          {% endif %}
         </select>
       </div>
       <!-- Parameter Dropdown -->
       <div class="form-group">
         <label for="parameter">Parameter</label>
         <select id="parameter" name="parameter" class="form-control" required>
-          <option value="" selected disabled>Select Parameter</option>
+          <option value="" disabled {% if not selected_parameter %}selected{% endif %}>Select Parameter</option>
           {% for abbreviation, full_name in parameters %}
-            <option value="{{ abbreviation }}">{{ full_name }}</option>
+            <option value="{{ abbreviation }}" {% if abbreviation == selected_parameter %}selected{% endif %}>{{ full_name }}</option>
           {% endfor %}
         </select>
       </div>
@@ -76,17 +94,18 @@
           <p>Average Passive: {{ avg_passive_team2 | round(2) }}</p>
         </div>
       </div>
-      <!-- Final Calculation Display -->
+      <!-- Final Calculation -->
       {% if final_value is not none %}
       <div class="mt-3 text-center">
-         <h4>Final Total {{ parameter_friendly_name }} next match: {{ final_value | round(2) }}</h4>
+         <h4>Final Total {{ parameter_friendly_name }} for next match between {{ team1 }} & {{ team2 }}: {{ final_value | round(2) }}</h4>
       </div>
       {% endif %}
     </div>
     {% endif %}
 
-    <!-- Results Section for Detailed Matches -->
-    <div class="row mt-5" id="results-section" {% if header_team1 or header_team2 %} style="display: block;" {% else %} style="display: none;" {% endif %}>
+    <!-- Results Section -->
+    <div class="row mt-5" id="results-section"
+         {% if header_team1 or header_team2 %} style="display: block;" {% else %} style="display: none;" {% endif %}>
       <!-- Team 1 Results -->
       <div class="col-md-6">
         {% if header_team1 and filtered_result_team1 %}
@@ -117,7 +136,6 @@
           {% if team1 %}<p class="text-center">No matches found for {{ team1 }}.</p>{% endif %}
         {% endif %}
       </div>
-
       <!-- Team 2 Results -->
       <div class="col-md-6">
         {% if header_team2 and filtered_result_team2 %}
@@ -169,8 +187,8 @@
           success: function (response) {
             $("#team1, #team2").empty().append('<option value="" selected disabled>Select Team</option>');
             response.teams.forEach(function (team) {
-              $("#team1").append(`<option value="${team}">${team}</option>`);
-              $("#team2").append(`<option value="${team}">${team}</option>`);
+              $("#team1").append(`<option value="${team}" ${team == "{{ team1 }}" ? "selected" : ""}>${team}</option>`);
+              $("#team2").append(`<option value="${team}" ${team == "{{ team2 }}" ? "selected" : ""}>${team}</option>`);
             });
           },
           error: function () {
